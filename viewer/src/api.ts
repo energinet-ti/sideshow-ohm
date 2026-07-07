@@ -54,6 +54,12 @@ export interface VersionInfo {
   notes?: string | null;
 }
 
+export interface ViewerChromeConfig {
+  themePicker?: boolean;
+  docLinks?: boolean;
+  claudeConnect?: boolean;
+}
+
 declare global {
   interface Window {
     // __SIDESHOW_BASE_PATH__ lives in host.ts (the default host reads it).
@@ -61,6 +67,7 @@ declare global {
     __SIDESHOW_PUBLIC_READ__?: PublicReadMode;
     __SIDESHOW_SCREENSHOTS__?: boolean;
     __SIDESHOW_PAGE_TITLE__?: string;
+    __SIDESHOW_CHROME__?: ViewerChromeConfig;
   }
 }
 
@@ -112,6 +119,15 @@ export function postImageLink(id: string): string {
 // isReadonly(). False on a plain Node server, which has no Browser Rendering.
 export function canScreenshot(): boolean {
   return host().screenshots ?? !!window.__SIDESHOW_SCREENSHOTS__;
+}
+
+export function viewerChrome(): Required<ViewerChromeConfig> {
+  const config = window.__SIDESHOW_CHROME__ ?? {};
+  return {
+    themePicker: config.themePicker !== false,
+    docLinks: config.docLinks !== false,
+    claudeConnect: config.claudeConnect !== false,
+  };
 }
 
 export async function api<T = unknown>(path: string, init?: RequestInit): Promise<T> {

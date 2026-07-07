@@ -72,6 +72,19 @@ test("themeOptions lists every theme as an id/label pair", () => {
   for (const o of opts) assert.ok(o.label.length > 0);
 });
 
+test("Energinet theme is registered with brand light and dark palettes", () => {
+  const theme = themeById("energinet");
+
+  assert.equal(theme.id, "energinet");
+  assert.equal(theme.label, "Energinet");
+  assert.ok(themeOptions().some((option) => option.id === "energinet"));
+  assert.equal(theme.light.info.text, "#00847C");
+  assert.equal(theme.light.text, "#293A4C");
+  assert.equal(theme.dark.bg, "#071F26");
+  assert.equal(theme.dark.info.text, "#00A58D");
+  assert.equal(theme.dark.warning.text, "#FFD424");
+});
+
 test("viewerThemeCss emits chrome vars with a dark-scheme override for each theme", () => {
   for (const t of THEMES) {
     const css = viewerThemeCss(t);

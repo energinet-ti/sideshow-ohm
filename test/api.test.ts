@@ -13,6 +13,8 @@ function makeApp(
     basePath?: string;
     viewerHtml?: string;
     screenshots?: boolean;
+    defaultThemeId?: string;
+    viewerChrome?: Parameters<typeof createApp>[0]["viewerChrome"];
     maxHoldConnections?: number;
     onEvent?: Parameters<typeof createApp>[0]["onEvent"];
   },
@@ -1283,6 +1285,32 @@ test("viewer config omits the screenshots flag by default (Node server)", async 
     await app.request("/", { headers: { authorization: "Bearer secret" } })
   ).text();
   assert.ok(!html.includes("__SIDESHOW_SCREENSHOTS__"));
+});
+
+test("viewer config injects chrome flags when controls are disabled", async () => {
+  const app = makeApp("secret", {
+    viewerChrome: { themePicker: false, docLinks: false, claudeConnect: false },
+  });
+
+  const html = await (
+    await app.request("/", { headers: { authorization: "Bearer secret" } })
+  ).text();
+
+  assert.ok(
+    html.includes(
+      'window.__SIDESHOW_CHROME__={"themePicker":false,"docLinks":false,"claudeConnect":false};',
+    ),
+  );
+});
+
+test("default theme option is used before a workspace theme is stored", async () => {
+  const app = makeApp("secret", { defaultThemeId: "energinet" });
+
+  const theme = (await (
+    await app.request("/api/theme", { headers: { authorization: "Bearer secret" } })
+  ).json()) as { id: string };
+
+  assert.equal(theme.id, "energinet");
 });
 
 test("public read viewer config treats query key as authenticated for that response", async () => {

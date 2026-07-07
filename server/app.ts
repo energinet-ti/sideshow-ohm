@@ -133,6 +133,12 @@ export type AuthenticateHook = (
 export type BasePathHook = string | ((request: Request) => string | null | undefined);
 export type PublicReadMode = "session" | "full";
 
+export interface ViewerChromeOptions {
+  themePicker?: boolean;
+  docLinks?: boolean;
+  claudeConnect?: boolean;
+}
+
 export interface AppOptions {
   store: Store;
   viewerHtml: string;
@@ -165,6 +171,12 @@ export interface AppOptions {
   // (window.__SIDESHOW_SCREENSHOTS__) so the screenshot action knows whether to
   // enable itself.
   screenshots?: boolean;
+  // Initial workspace theme when no persisted theme is stored yet. Invalid ids
+  // resolve to the normal default so hosts can source this from env safely.
+  defaultThemeId?: string;
+  // Self-hosted viewer chrome toggles. Embedders can already override these
+  // regions with slots; this gives plain self-hosted deployments an env/app seam.
+  viewerChrome?: ViewerChromeOptions;
   // Update notice: the running version and the upgrade hint that fits this
   // deployment (npm install vs redeploy). Without `version`, /api/version
   // reports nothing and the viewer shows no notice.
@@ -273,6 +285,8 @@ export function createApp({
   basePath,
   publicRead,
   screenshots,
+  defaultThemeId,
+  viewerChrome,
   version,
   upgradeCommand,
   fetchLatestRelease,
@@ -281,6 +295,10 @@ export function createApp({
 }: AppOptions) {
   const app = new Hono();
   const bus = new EventBus();
+  const initialThemeId =
+    defaultThemeId && themeById(defaultThemeId).id === defaultThemeId
+      ? defaultThemeId
+      : DEFAULT_THEME_ID;
   if (onEvent) {
     bus.subscribe((event) => {
       try {
@@ -895,6 +913,7 @@ export function createApp({
         ? `window.__SIDESHOW_PUBLIC_READ__=${JSON.stringify(publicRead)};`
         : "",
       screenshots ? "window.__SIDESHOW_SCREENSHOTS__=true;" : "",
+      viewerChrome ? `window.__SIDESHOW_CHROME__=${JSON.stringify(viewerChrome)};` : "",
     ].join("");
     return injectHead(text, `<script>${config}</script>`);
   };
@@ -967,7 +986,8 @@ export function createApp({
   // --- theme (one workspace-level setting) ---
 
   app.get("/api/theme", async (c) => {
-    const id = (await store.getSetting("theme")) ?? DEFAULT_THEME_ID;
+    const storedTheme = await store.getSetting("theme");
+    const id = storedTheme ? themeById(storedTheme).id : initialThemeId;
     return c.json({ id, themes: themeOptions() });
   });
 
@@ -1479,7 +1499,7 @@ export function createApp({
     c.header("Content-Security-Policy", "sandbox allow-scripts");
     // Theme: an explicit ?theme= (the viewer keys iframe srcs by it so a switch
     // reloads the frame) wins; otherwise the persisted workspace theme; else default.
-    const themeId = c.req.query("theme") ?? (await store.getSetting("theme")) ?? DEFAULT_THEME_ID;
+    const themeId = c.req.query("theme") ?? (await store.getSetting("theme")) ?? initialThemeId;
     const theme = themeById(themeId);
     // Scheme: the viewer passes the light/dark mode it resolved so the iframe is
     // pinned to it rather than re-deriving from the OS (which can diverge from

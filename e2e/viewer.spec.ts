@@ -482,6 +482,26 @@ test("the Connect Claude Code modal shows the plugin install commands", async ({
   await expect(modal).toBeHidden();
 });
 
+test("self-hosted chrome config can hide theme and helper footer controls", async ({
+  page,
+  server,
+}) => {
+  await page.addInitScript(() => {
+    (window as any).__SIDESHOW_CHROME__ = {
+      themePicker: false,
+      docLinks: false,
+      claudeConnect: false,
+    };
+  });
+
+  await page.goto(server.url);
+
+  await expect(page.locator(".theme-picker")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "design guide" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "agent setup" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "connect Claude Code" })).toHaveCount(0);
+});
+
 test("version select appears live after an update", async ({ page, server }) => {
   const snippet = await publish(server.url, { html: "<p>v1</p>", title: "Doc", agent: "e2e" });
 

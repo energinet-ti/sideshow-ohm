@@ -8,6 +8,7 @@ import { migrateLegacyDataDir } from "./migrateDataDir.ts";
 import { SqlStore } from "./sqlStore.ts";
 import { createSqliteStorage, migrateJsonToSqlite } from "./sqliteStorage.ts";
 import { JsonFileStore } from "./storage.ts";
+import { themeById } from "./themes.ts";
 import type { Store } from "./types.ts";
 
 // Source layout puts this file at server/index.ts; the published package runs
@@ -29,6 +30,18 @@ const [viewerHtml, guideMarkdown, setupText, agentHowtoText, pkgJson] = await Pr
 
 const pr = process.env.SIDESHOW_PUBLIC_READ;
 const publicRead = pr === "session" || pr === "full" ? pr : undefined;
+const envFlag = (name: string) => /^(1|true|yes|on)$/i.test(process.env[name] ?? "");
+const defaultThemeId =
+  process.env.SIDESHOW_DEFAULT_THEME &&
+  themeById(process.env.SIDESHOW_DEFAULT_THEME).id === process.env.SIDESHOW_DEFAULT_THEME
+    ? process.env.SIDESHOW_DEFAULT_THEME
+    : undefined;
+const viewerChromeConfig = {
+  ...(envFlag("SIDESHOW_HIDE_THEME_PICKER") ? { themePicker: false } : {}),
+  ...(envFlag("SIDESHOW_HIDE_DOC_LINKS") ? { docLinks: false } : {}),
+  ...(envFlag("SIDESHOW_HIDE_CLAUDE_CONNECT") ? { claudeConnect: false } : {}),
+};
+const viewerChrome = Object.keys(viewerChromeConfig).length > 0 ? viewerChromeConfig : undefined;
 
 // Storage backend. SQLite (via node:sqlite) is the default so the local server
 // mirrors the Cloudflare Durable Object deploy — both run the same SqlStore.
@@ -76,6 +89,8 @@ const app = createApp({
   agentHowtoText,
   authToken: process.env.SIDESHOW_TOKEN,
   publicRead,
+  defaultThemeId,
+  viewerChrome,
   // SIDESHOW_VERSION fakes the running version (manual testing of the
   // notice); set it to the empty string to disable the update check
   version: process.env.SIDESHOW_VERSION ?? (JSON.parse(pkgJson) as { version: string }).version,

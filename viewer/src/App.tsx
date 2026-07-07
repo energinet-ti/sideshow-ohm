@@ -9,6 +9,7 @@ import {
   sessionLabel,
   type Post,
   type SessionRow,
+  viewerChrome,
 } from "./api.ts";
 import { host, isShadow, navHostEl, root, SLOTS } from "./host.ts";
 import { applyFrameHeight, Card, cardEls, frameForSource } from "./Card.tsx";
@@ -236,8 +237,8 @@ export default function App() {
                       makes sense when the workspace is writable — readonly workspaces
                       show "Nothing here yet" in the empty pane, not connect
                       instructions, so the row would point at a contradiction.
-                      The slot itself stays mounted so an embedder can still
-                      project its own (possibly readonly-appropriate) nudge. */}
+                  The slot itself stays mounted so an embedder can still
+                  project its own (possibly readonly-appropriate) nudge. */}
                       <Show when={!isReadonly()}>
                         <AsideEmptyRow />
                       </Show>
@@ -247,7 +248,7 @@ export default function App() {
                 <div class="aside-foot">
                   {/* ThemePicker is a generic feature, not deployment-specific
                   guidance — it stays engine-owned and works under any host. */}
-                  <Show when={!isReadonly()}>
+                  <Show when={!isReadonly() && viewerChrome().themePicker}>
                     <ThemePicker />
                   </Show>
                   {/* Host-overridable region (SLOTS.asideFoot): the footer's
@@ -256,15 +257,17 @@ export default function App() {
                   self-hosted fallback — shown verbatim when nothing is projected
                   (and outside a shadow root, where <slot> just renders them). */}
                   <slot name={SLOTS.asideFoot}>
-                    <a href="/guide" target="_blank">
-                      design guide
-                    </a>{" "}
-                    &nbsp;·&nbsp;{" "}
-                    <a href="/setup" target="_blank">
-                      agent setup
-                    </a>{" "}
-                    <Show when={!isReadonly()}>
+                    <Show when={viewerChrome().docLinks}>
+                      <a href="/guide" target="_blank">
+                        design guide
+                      </a>{" "}
                       &nbsp;·&nbsp;{" "}
+                      <a href="/setup" target="_blank">
+                        agent setup
+                      </a>{" "}
+                    </Show>
+                    <Show when={!isReadonly() && viewerChrome().claudeConnect}>
+                      <Show when={viewerChrome().docLinks}>&nbsp;·&nbsp; </Show>
                       <a
                         href="#"
                         onClick={(e) => {

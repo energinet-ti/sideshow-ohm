@@ -85,7 +85,7 @@
     "deploy": "npm run build:viewer && wrangler deploy",
     "dev:cloud": "npm run build:viewer && wrangler dev",
     "prepack": "npm run build",
-    "prepare": "simple-git-hooks && npm run build",
+    "prepare": "node scripts/prepare.js",
     "security:audit": "npm audit --audit-level=high"
   },
   "dependencies": {
